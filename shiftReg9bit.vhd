@@ -6,8 +6,7 @@ entity shiftReg9bit is
 		(
 			i_clk, i_clr,  i_resetNot, i_load, i_enShift : in std_logic;
 			i_bitStream : in std_logic_vector(8 downto 0);
-			o_shiftedStream : out std_logic_vector(8 downto 0);
-			out_enable  : out std_logic
+			o_shiftedStream : out std_logic_vector(8 downto 0)
 		);
 end shiftReg9bit;
 
@@ -116,6 +115,5 @@ dff0: enARdFF_2
 			i_clock		=> i_clk,
 			o_q 		=> mid_outp(0)
 			);
-	out_enable <= mid_latchEn;
-	o_shiftedStream <= mid_inp;
+	o_shiftedStream <= mid_outp;
 end structural;
