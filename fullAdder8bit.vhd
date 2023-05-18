@@ -7,7 +7,7 @@ entity fullAdder8bit is port(
 	i_B : in std_logic_vector(7 downto 0);
 	i_Carry : in std_logic;
 	o_Sign, o_Carry: out std_logic;
-	o_Sum : out std_logic_vector(7 downto 0)
+	o_Sum : out std_logic_vector(6 downto 0)
 	);
 		
 end fullAdder8bit;
@@ -32,7 +32,7 @@ OneBitadder7: fullAdderONEbit
 			i_b => i_B(7),
 			i_c => mid_carry(6),
 			o_c => mid_Carry(7),
-			o_sum => o_Sign
+			o_sum => open
 		);
 OneBitadder6: fullAdderONEbit
 	port map(
