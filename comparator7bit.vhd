@@ -5,7 +5,8 @@ entity comparator7bit is
 	port
 		( 
 			ein1, ein2 : in std_logic_vector(6 downto 0);
-			o_GT, o_LT, o_EQ : out std_logic
+			o_GT, o_LT, o_EQ, temp_less9Flag: out std_logic
+
 		);
 end comparator7bit;
 
@@ -110,4 +111,5 @@ bit0 : comparator1bit
 	o_EQ <= temp_GT(0) nor temp_LT(0);
 	o_GT <= temp_GT(0);
 	o_LT <= temp_LT(0);
+	temp_less9Flag <= not(temp_GT(0) nor temp_LT(0)) and not(temp_LT(0)) and temp_GT(0);
 end structural;

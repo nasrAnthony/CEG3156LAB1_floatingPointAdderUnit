@@ -1,22 +1,22 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-entity adderControlUnit is 
+entity adderController is 
 	port 
 		(
 			i_global_clk, i_global_rst : in std_logic;
-			signFlag, less9flag, zeroFlag, i_carryFlag : in std_logic;
-			o_loadEa, o_loadEb, o_loadMaS, o_loadMbS  : out std_logic; -- o_loadMaS/MbS correspond to the load signal into the 9 bit shift reg. 
-			o_loadMr, o_loadEr, o_loadCounter6, o_carryFlag : out std_logic;
-			o_complA22, o_complB21, o_bflag, o_aflag : out std_logic;
-			o_clearA, o_clearB, o_shiftB, o_shiftA : out std_logic;
-			o_countDown1, o_countUp1, o_shiftRes, o_finish : out std_logic;		
+			i_sign, i_notLess9, i_zero, i_coutFz : in std_logic;
+			o_load1, o_load2, o_load3, o_load4  : out std_logic; --o_loadMaS/MbS correspond to the load signal into the 9 bit shift reg. 
+			o_load5, o_load7, o_load6, o_cin : out std_logic;
+			o_on22, o_on21, o_flag0, o_flag1 : out std_logic;
+			o_clear4, o_clear3, o_shiftR4, o_shiftR3 : out std_logic;
+			o_countD6, o_countU7, o_shiftR5, o_finish : out std_logic;		
 			stateVector  : out std_logic_vector(0 to 9)
 		);
-end adderControlUnit;
+end adderController;
 
 
-architecture structural of adderControlUnit is
+architecture structural of adderController is
 component enARdFF_2
 	port	
 		(
@@ -42,14 +42,14 @@ begin
 --state equation inputs:
 temp_stateinput(0) <= '0'; --State S0 input
 temp_stateinput(1) <= temp_state(0);
-temp_stateinput(2) <= signFlag and temp_state(1);
-temp_stateinput(3) <= less9flag and temp_state(2);
-temp_stateinput(4) <= (not(zeroFlag) and temp_state(4)) or (temp_state(2) and not(less9flag) and not(zeroFlag));
-temp_stateinput(5) <= temp_state(1) and less9flag and not(signFlag);
-temp_stateinput(6) <= (temp_state(6) and not(zeroFlag)) or (temp_state(1) and not(signFlag) and not(less9flag) and not(zeroFlag));
-temp_stateinput(7) <= temp_state(3) or temp_state(5) or (temp_state(4) and zeroFlag) or (temp_state(6) and zeroFlag)or (temp_state(2) and not(less9flag)and zeroFlag) or (temp_state(1) and not(signFlag) and not(less9flag) and zeroFlag);
-temp_stateinput(8) <= temp_state(7) and i_carryFlag;
-temp_stateinput(9) <= (temp_state(7) and not(i_carryFlag)) or temp_state(8);
+temp_stateinput(2) <= i_sign and temp_state(1);
+temp_stateinput(3) <= temp_state(1) and i_notLess9 and not(i_sign);
+temp_stateinput(4) <= (not(i_zero) and temp_state(4)) or (temp_state(1) and not(i_sign) and not(i_notLess9) and not(i_zero));
+temp_stateinput(5) <= i_notLess9 and temp_state(2);
+temp_stateinput(6) <= (temp_state(6) and not(i_zero)) or (temp_state(2) and not(i_notLess9) and not(i_zero));
+temp_stateinput(7) <= temp_state(3) or (temp_state(4) and i_zero) or (temp_state(2) and not(i_notLess9 and i_zero)) or (temp_state(1) and not(i_sign) and not(i_notLess9) and i_zero);
+temp_stateinput(8) <= temp_state(7) and i_coutFz;
+temp_stateinput(9) <= (temp_state(7) and not(i_coutFz)) or temp_state(8);
 
 --instantiating the dFFs for each state. 
 state0: reg1bit 
@@ -145,25 +145,25 @@ state9: enARdFF_2
 				);
 --driving the outputs and the control signals:
 	stateVector <= temp_state;
-	o_loadEa <= temp_state(0);
-	o_loadEb <= temp_state(0);
-	o_loadMaS <= temp_state(0);
-	o_loadMbS <= temp_state(0);
-	o_carryFlag <= temp_state(1) or temp_state(2);
-	o_loadCounter6 <= temp_state(1) or temp_state(2);
-	o_complB21 <= temp_state(1);
-	o_aflag <= temp_state(1);
-	o_complA22 <= temp_state(2);
-	o_bflag <= temp_state(2);
-	o_clearB <= temp_state(5); --  old 3
-	o_shiftB <= temp_state(6); -- old 4
-	o_countDown1 <= temp_state(4) or temp_state(6);
-	o_clearA <= temp_state(3); --  old 5
-	o_shiftA <= temp_state(4); --  old 6
-	o_loadMr <= temp_state(7);
-	o_loadEr <= temp_state(7);
-	o_shiftRes <= temp_state(8);
-	o_countUp1 <= temp_state(8); 
+	o_load1 <= temp_state(0);
+	o_load2 <= temp_state(0);
+	o_load3 <= temp_state(0);
+	o_load4 <= temp_state(0);
+	o_cin <= temp_state(1) or temp_state(2);
+	o_load7 <= temp_state(1) or temp_state(2);
+	o_on21 <= temp_state(1);
+	o_flag1 <= temp_state(1);
+	o_on22 <= temp_state(2);
+	o_flag0 <= temp_state(2);
+	o_clear3 <= temp_state(3);
+	o_shiftR4 <= temp_state(4);
+	o_countD6 <= temp_state(4) or temp_state(6);
+	o_clear4 <= temp_state(5);
+	o_shiftR3 <= temp_state(6);
+	o_load5 <= temp_state(7);
+	o_load6 <= temp_state(7);
+	o_shiftR5 <= temp_state(8);
+	o_countU7 <= temp_state(8); 
 	o_finish <= temp_state(9);
 				
 end architecture;

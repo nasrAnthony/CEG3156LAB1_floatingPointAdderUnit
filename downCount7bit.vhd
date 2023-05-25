@@ -1,30 +1,28 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-entity downCounter7bit is 
+entity downCount7bit is 
 	port (
-			in_bits : in std_logic_vector(7 downto 0);
+			in_bits : in std_logic_vector(6 downto 0);
 			in_count_down : in std_logic;
 			i_clk : in std_logic;
 			i_en :  in std_logic;
 			i_resetNot : in std_logic;
-			out_bits : out std_logic_vector(7 downto 0);
+			out_bits : out std_logic_vector(6 downto 0);
 			zero_flag : out std_logic;
-			out_temp :  out std_logic_vector(7 downto 0);
+			out_temp :  out std_logic_vector(6 downto 0);
 			out_test  : out std_logic
 	);
 	
 end entity ;
 
 
-architecture structural of downCounter7bit is 
+architecture structural of downCount7bit is 
 
 signal mid_inBits : std_logic_vector(6 downto 0);
 signal mid_outBits : std_logic_vector(6 downto 0);
 signal mid_temp : std_logic_vector(6 downto 0);
 signal mid_d : std_logic_vector(6 downto 0);
-signal mid_sel : std_logic;
-
 
 component enARdFF_2 is 
 	port 
@@ -54,8 +52,8 @@ component mux7bit2x1 is
 end component;
 
 begin
-mid_inBits <= in_bits(6 downto 0);
-mid_sel <= in_count_down;
+mid_inBits <= in_bits;
+
 decrementer_instance : sub7bitUnit
 	port 
 		map (
@@ -71,9 +69,10 @@ muxSelect: mux7bit2x1
 			( 
 				i_X => mid_temp, 
 				i_Y => mid_inBits,
-				sel => mid_sel, 
+				sel => in_count_down, 
 				output => mid_d
 			);
+
 bit0: enARdFF_2 
 	port 
 		map 
@@ -144,9 +143,9 @@ bit6: enARdFF_2
 				i_clock	=> i_clk, 
 				o_q => mid_outBits(6)
 			);
-	--out_bits <= mid_outBits;
-	zero_flag <= '1' when (mid_temp = "0000000") else '0';
-	out_bits <= '1' & mid_outBits;
+	out_bits <= mid_outBits;
+	zero_flag <= '1' when (mid_outBits = "0000000") else '0';
+	out_temp <= mid_temp;
 	out_test <= '1';
 
 end structural;

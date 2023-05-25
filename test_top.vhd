@@ -1,7 +1,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-entity fpAdder_top is 
+entity test_top is 
 	port
 		(
 			glob_clk, glob_reset, signA, signB : in std_logic;
@@ -10,27 +10,27 @@ entity fpAdder_top is
 			signRes, exceptionOverflow : out std_logic;
 			mRes : out std_logic_vector(7 downto 0);
 			eRes : out std_logic_vector(6 downto 0);
-			signFlag,less9, isZero, finish, loadEdiff: out std_logic;
-			AoverB, count_down , clearA, clearB, shiftA, shiftB, aFlag, bFlag: out std_logic;
-			diffExponents, ediffOut: out std_logic_vector(6 downto 0);
-			shiftedB, shiftedA, sum  : out std_logic_vector(8 downto 0);
+			signFlag,less9, isZero, finish: out std_logic;
+			diffExponents, dCounterOut : out std_logic_vector(6 downto 0);
+			EAC, EBC : out std_logic_vector(7 downto 0); 
+			carryIN : out std_logic;
 			state : out std_logic_vector(0 to 9)
 		);
-end fpAdder_top;
+end test_top;
 
-architecture structural of fpAdder_top is 
+architecture structural of test_top is 
 --Defining all the components of the fpAdder
 
-component adderControlUnit --Control unit for the top lvl fpAdder
+component adderController --Control unit for the top lvl fpAdder
 	port
 		(
 			i_global_clk, i_global_rst : in std_logic;
-			signFlag, less9flag, zeroFlag, i_carryFlag : in std_logic;
-			o_loadEa, o_loadEb, o_loadMaS, o_loadMbS  : out std_logic; -- o_loadMaS/MbS correspond to the load signal into the 9 bit shift reg. 
-			o_loadMr, o_loadEr, o_loadCounter6, o_carryFlag : out std_logic;
-			o_complA22, o_complB21, o_bflag, o_aflag : out std_logic;
-			o_clearA, o_clearB, o_shiftB, o_shiftA : out std_logic;
-			o_countDown1, o_countUp1, o_shiftRes, o_finish : out std_logic;		
+			i_sign, i_notLess9, i_zero, i_coutFz : in std_logic;
+			o_load1, o_load2, o_load3, o_load4  : out std_logic; --o_loadMaS/MbS correspond to the load signal into the 9 bit shift reg. 
+			o_load5, o_load7, o_load6, o_cin : out std_logic;
+			o_on22, o_on21, o_flag0, o_flag1 : out std_logic;
+			o_clear4, o_clear3, o_shiftR4, o_shiftR3 : out std_logic;
+			o_countD6, o_countU7, o_shiftR5, o_finish : out std_logic;		
 			stateVector  : out std_logic_vector(0 to 9)
 		);
 end component;
@@ -42,6 +42,7 @@ component srlatch --sr latch
 			o_q, o_qBar		: OUT	STD_LOGIC
 		);
 end component;
+
 component complementer8Bit --8 bit complementer unit
 	port 
 		( 
@@ -125,15 +126,13 @@ end component;
 component downCounter7bit -- 7 bit down counter unit
 	port 	
 		(
-			in_bits : in std_logic_vector(6 downto 0);
-			in_count_down : in std_logic;
-			i_clk : in std_logic;
-			i_en :  in std_logic;
 			i_resetNot : in std_logic;
-			out_bits : out std_logic_vector(6 downto 0);
-			zero_flag : out std_logic;
-			out_temp :  out std_logic_vector(6 downto 0);
-			out_test  : out std_logic
+			i_load : in std_logic;
+			i_countDOWN : in std_logic;
+			i_clk : in std_logic;
+			i_input : in std_logic_vector(6 downto 0);
+			o_output : out std_logic_vector(6 downto 0);
+			zeroFlag : out std_logic
 		);
 end component;
 
@@ -143,34 +142,6 @@ component shiftReg9bit -- 9 bit shift register unit
 			i_clk, i_clr,  i_resetNot, i_load, i_enShift : in std_logic;
 			i_bitStream : in std_logic_vector(8 downto 0);
 			o_shiftedStream : out std_logic_vector(8 downto 0)
-		);
-end component;
-
---component testDownCounter 
-	--port (
-	--i_clk : in std_logic;
-		--i_countDown : in std_logic;
-		--i_in  : in std_logic_vector(6 downto 0);
-		--load_en : in std_logic;
-		--o_out : out std_logic_vector(6 downto 0)
-	--);
---end component;
-component downCounter7bit_OG  
-	port 
-		(
-			i_resetNot : in std_logic;
-			i_load : in std_logic;
-			i_countDOWN : in std_logic;
-			i_clk : in std_logic;
-			i_input : in std_logic_vector(6 downto 0);
-			o_output : out std_logic_vector(6 downto 0)
-		);
-end component;
-component sub7bitunit
-	port 
-		(
-			i_A, i_B : in std_logic_vector(6 downto 0);
-			o_out : out std_logic_vector(6 downto 0)
 		);
 end component;
 
@@ -196,40 +167,40 @@ begin
 temp_less9Flag <= not(tEqual) and not(tLess) and tGreater;
 tEacompIN <= '0' & tEa;
 tEbcompIN <= '0' & tEb;
-temp_signFlag <= '0' when (eB < eA) else '1'; -- 0 if Eres is eA, 1 otherwise.
+--temp_signFlag <= '0' when (eB < eA) else '1';
 tMa <= '1' & mA;
 tMb <= '1' & mB;
 temp_clearRes <= '0';
 --Instance of controller:
-topControlUnit : adderControlUnit
+topControlUnit : adderController
 	port 
 		map	
 			(
 				i_global_clk => glob_clk, 
 				i_global_rst => glob_reset, 
-				signFlag => temp_signFlag,
-				less9flag => temp_less9Flag, 
-				zeroFlag => temp_zeroFlag, 
-				i_carryFlag => temp_carryOut, 
-				o_loadEa => temp_loadEa, 
-				o_loadEb => temp_loadEb, 
-				o_loadMaS => temp_loadMa, 
-				o_loadMbS => temp_loadMb, 
-				o_loadMr => temp_loadMres, 
-				o_loadEr => temp_loadEres, 
-				o_loadCounter6 => temp_loadEdiff,
-				o_carryFlag => temp_inCarry, 
-				o_complA22 => temp_complA, 
-				o_complB21 => temp_complB, 
-				o_bflag => temp_bflag, 
-				o_aflag => temp_aflag, 
-				o_clearA => temp_clearA, 
-				o_clearB => temp_clearB, 
-				o_shiftA => temp_shiftA, 
-				o_shiftB => temp_shiftB, 
-				o_shiftRes => temp_shiftRes, 
-				o_countDown1 => temp_assertCountDown, 
-				o_countUp1 => temp_assertCountUp, 
+				i_sign => temp_signFlag,
+				i_notLess9 => temp_less9Flag, 
+				i_zero => temp_zeroFlag, 
+				i_coutFz => temp_carryOut, 
+				o_load1 => temp_loadEa, 
+				o_load2 => temp_loadEb, 
+				o_load3 => temp_loadMa, 
+				o_load4 => temp_loadMb, 
+				o_load5 => temp_loadMres, 
+				o_load7 => temp_loadEres, 
+				o_load6 => temp_loadEdiff,
+				o_cin => temp_inCarry, 
+				o_on22 => temp_complA, 
+				o_on21 => temp_complB, 
+				o_flag1 => temp_bflag, 
+				o_flag0 => temp_aflag, 
+				o_clear3 => temp_clearA, 
+				o_clear4 => temp_clearB, 
+				o_shiftR3 => temp_shiftA, 
+				o_shiftR4 => temp_shiftB, 
+				o_shiftR5 => temp_shiftRes, 
+				o_countD6 => temp_assertCountDown, 
+				o_countU7 => temp_assertCountUp, 
 				stateVector => state_vector,
 				o_finish => temp_finish
 			);
@@ -250,7 +221,7 @@ reg_ExpB : reg7bit --Exponent B reg.
 				i_clk => glob_clk, 
 				i_rstG => glob_reset,
 				i_load => temp_loadEb, 
-				i_inBits => eB,
+				i_inBits => eA,
 				o_outBits => tEb
 			);
 ExpAcomplement : complementer8Bit
@@ -276,34 +247,21 @@ adderSubUnit : fullAdder8bit --by default performs Ea - Eb or Ea +[compl(Eb)]
 				i_A => tEacomp, 
 				i_B => tEbcomp,
 				i_Carry => temp_inCarry,
-				o_Sign => open,
+				o_Sign => temp_signFlag,
 				o_Sum => tExponentDiff
-
 			);
-			
-DCounter7bit : downCounter7bit_OG 
+DCounter7bit : downCounter7bit 
 	port	
 		map	
-		(
-				i_input => tExponentDiff,
-				i_countDOWN => temp_assertCountDown,
+			(
+				i_resetNot => glob_reset, 
+				i_load => temp_loadEdiff,
+				i_countDOWN => temp_assertCountDown, 
 				i_clk => glob_clk,
-				i_load =>  temp_loadEdiff,
-				i_resetNot  => glob_reset, 
-				o_output => tEcomparator
+				i_input => tExponentDiff, 
+				o_output => tEcomparator, 
+				zeroFlag => temp_zeroFlag
 			);
-			
---downCounterTest : testDownCounter
-	--port 
-	--	map 
-		--	(
-		--		i_clk => glob_clk, 
-			--	i_countDown => temp_assertCountDown,
-			--	i_in  => tExponentDiff,
-			--	load_en => temp_loadEdiff,
-			--	o_out => tEcomparator
---);
-		
 UCounter7bit : upCounter7bit
 	port 
 		map	
@@ -322,19 +280,11 @@ comparatorSevBits : comparator7bit
 	port 
 		map
 			(
-				ein1 => tEcomparator,  --used to be the tEcomparator
+				ein1 => tEcomparator, 
 				ein2 => "0001000", --compare to see if less than 8.
 				o_GT => tGreater, 
 				o_LT => tLess, 
 				o_EQ => tEqual
-			);
-comparatorSevBitsTo0 : comparator7bit
-	port 
-		map
-			(
-				ein1 => tEcomparator, 
-				ein2 => "0000000", --compare to see if is equal to 0
-				o_EQ => temp_zeroFlag
 			);
 			
 latch : srlatch
@@ -351,7 +301,7 @@ muxEXP : mux7bit2x1
 			(
 				i_X => tEa, 
 				i_Y => tEb,
-				sel  => temp_signFlag,
+				sel  => tFlag,
 				output  => tEres 
 			);
 shiftRegisterMa : shiftReg9bit
@@ -412,24 +362,18 @@ shiftRegisterMres : shiftReg9bit -- Normalizer.
 					  signA when (mA > mB) else
 					  signB when (mB > mA) else	
 					  signA;
-		AoverB <= temp_signFlag;
+		signFlag <= temp_signFlag;
 		less9 <= temp_less9Flag;
 		isZero <= temp_zeroFlag;
 		state <= state_vector;
 		finish <= temp_finish;
 		diffExponents <= tExponentDiff;
-		ediffOut <= tEcomparator;
-		count_down <= temp_assertCountDown;
-		clearA <= temp_clearA;
-		clearB <= temp_clearB;
-		shiftA <= temp_shiftA;
-		shiftB <= temp_shiftB;
-		shiftedB <= tMbShifted;
-		shiftedA <= tMAShifted;
-		loadEdiff <= temp_loadEdiff;
-		aFlag <= temp_aflag;
-		bFlag <= temp_bflag;
-		sum <= tMsum;
+		dCounterOut <= tEcomparator;
+		EAC <= tEacomp;
+		EBC <= tEbcomp;
+		carryIN <= temp_inCarry;
+		
+
 end structural;
 
 
